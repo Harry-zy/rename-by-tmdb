@@ -1,0 +1,17 @@
+# Binaries and releases
+dist/rename-by-tmdb-*
+*.exe
+*.zip
+*.tar.gz
+
+# Go build
+*.o
+*.a
+*.so
+
+# IDE
+.idea/
+.vscode/
+
+# Environment
+.env 
