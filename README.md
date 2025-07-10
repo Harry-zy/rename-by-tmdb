@@ -97,7 +97,7 @@ your-directory/
 请输入当前文件名中的标题部分（例如：The.Matrix）: The.Matrix.1999 
 请输入电影ID: 603
 命名格式：
-黑客帝国.1999.{[tmdbid=603,type=movie]}
+黑客帝国.1999.{[tmdbid=603;type=movie]}
 词组创建成功，ID: 115
 
 被替换词：
@@ -127,9 +127,9 @@ The\.Matrix\.1999[^.]*\.
 请输入选项（1或2）: 2
 请输入剧集ID: 37854
 命名格式：
-航海王.1999.{[tmdbid=37854,type=tv]}
+航海王.1999.{[tmdbid=37854;type=tv]}
 命名格式：
-航海王.1999.{[tmdbid=37854,type=tv]}
+航海王.1999.{[tmdbid=37854;type=tv]}
 词组创建成功，ID: 113
 请输入当前文件名中的标题部分（例如：One.Piece）: One.Piece
 是否使用原文件名季数？(y/n，直接回车默认为y): n
@@ -337,7 +337,7 @@ WARNING: undefined behavior - version of Delve is too old for Go version go1.23.
 请输入选项（1或2）: 2
 请输入剧集ID: 31910
 命名格式：
-火影忍者：疾风传.2007.{[tmdbid=31910,type=tv]}
+火影忍者：疾风传.2007.{[tmdbid=31910;type=tv]}
 词组创建成功，ID: 125
 请输入当前文件名中的标题部分（例如：One.Piece）: Naruto
 是否使用原文件名季数？(y/n，直接回车默认为y): n
@@ -681,9 +681,9 @@ Naruto[^.]*\.(?:S\d{2})?E((63[4-9]|64[0-9]|65[0-9]|66[0-9]|67[0-9]|68[0-9]|69[0-
 请输入选项（1或2）: 2
 请输入剧集ID: 45790
 命名格式：
-JOJO的奇妙冒险.2012.{[tmdbid=45790,type=tv]}
+JOJO的奇妙冒险.2012.{[tmdbid=45790;type=tv]}
 命名格式：
-JOJO的奇妙冒险.2012.{[tmdbid=45790,type=tv]}
+JOJO的奇妙冒险.2012.{[tmdbid=45790;type=tv]}
 词组创建成功，ID: 114
 请输入当前文件名中的标题部分（例如：One.Piece）: JoJos.Bizarre.Adventure      
 是否使用原文件名季数？(y/n，直接回车默认为y): y

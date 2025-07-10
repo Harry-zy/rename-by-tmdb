@@ -42,7 +42,7 @@ func handleMovie(tmdbService *services.TMDBService) error {
 	movieName := strings.ReplaceAll(movie.Title, " ", ".")
 
 	// 创建命名格式
-	namingFormat := fmt.Sprintf("%s.%s.{[tmdbid=%s,type=movie]}",
+	namingFormat := fmt.Sprintf("%s.%s.{[tmdbid=%s;type=movie]}",
 		movieName, year, movieID)
 	fmt.Printf("命名格式：\n%s\n", namingFormat)
 
@@ -140,7 +140,7 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 	}
 
 	// 创建命名格式
-	namingFormat := fmt.Sprintf("%s.%s.{[tmdbid=%s,type=%s]}",
+	namingFormat := fmt.Sprintf("%s.%s.{[tmdbid=%s;type=%s]}",
 		showName, year, seriesID, showType)
 	fmt.Printf("命名格式：\n%s\n", namingFormat)
 
