@@ -6,7 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 # 版本号
-VERSION="v1.0.0"
+VERSION="v1.0.1"
 
 # 程序名称
 APP_NAME="rename-by-tmdb"
