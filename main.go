@@ -62,14 +62,14 @@ func handleMovie(tmdbService *services.TMDBService) error {
 		fmt.Printf("词组创建成功，ID: %d\n", wordGroup.ID)
 
 		// 构建电影的替换规则
-		beReplaced := fmt.Sprintf("%s[^.]*\\.", regexp.QuoteMeta(fileTitle))
-		replace := fmt.Sprintf("%s.", movieName)
+		beReplaced := fmt.Sprintf("%s.*", regexp.QuoteMeta(fileTitle))
+		replace := fmt.Sprintf("%s.%s.{[tmdbid=%s;type=movie]}", movieName, year, movieID)
 
 		fmt.Printf("\n被替换词：\n%s\n", beReplaced)
 		fmt.Printf("替换词：\n%s\n", replace)
 
 		// 上传替换规则
-		err = wordGroupService.AddWordUnit(wordGroup.ID, beReplaced, replace, "", ".", 0)
+		err = wordGroupService.AddWordUnit(wordGroup.ID, beReplaced, replace, "", "", 0)
 		if err != nil {
 			return fmt.Errorf("上传电影替换规则失败: %v", err)
 		}
@@ -180,14 +180,8 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		return fmt.Errorf("错误: %v", err)
 	}
 
-	// 如果有集数偏移，获取后定位词
-	var backPositionWord = "."
-	if episodeOffset != 0 {
-		backPositionWord, err = utils.GetBackPositionWord()
-		if err != nil {
-			return fmt.Errorf("错误: %v", err)
-		}
-	}
+	// 设置后定位词为".年份."
+	backPositionWord := fmt.Sprintf(".%s.", year)
 
 	fmt.Printf("\n=== %s 各季重命名正则表达式 ===\n", show.Name)
 
@@ -229,20 +223,25 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		// 构建匹配范围的正则表达式
 		var beReplaced string
 		if hasSeason {
-			beReplaced = fmt.Sprintf("%s[^.]*\\.S%02dE(%s)\\.",
+			beReplaced = fmt.Sprintf("%s.*S%02dE(%s)",
 				regexp.QuoteMeta(fileTitle),
 				season.SeasonNumber,
 				utils.GenerateRangePattern(sourceStartEp, sourceEndEp, digits))
 		} else {
-			beReplaced = fmt.Sprintf("%s[^.]*\\.(?:S\\d{2})?E(%s)\\.",
+			beReplaced = fmt.Sprintf("%s.*(?:S\\d{2})?E(%s)",
 				regexp.QuoteMeta(fileTitle),
 				utils.GenerateRangePattern(sourceStartEp, sourceEndEp, digits))
 		}
 
 		// 生成替换词和前后定位词
-		replace := fmt.Sprintf("%s.S%02dE\\1.", showName, season.SeasonNumber)
-		prefix := fmt.Sprintf("%s.S%02dE", showName, season.SeasonNumber)
-		suffix := backPositionWord
+		replace := fmt.Sprintf("%s.S%02dE\\1.%s.{[tmdbid=%s;type=%s]}", showName, season.SeasonNumber, year, seriesID, showType)
+
+		// 只在有偏移量时设置前后定位词
+		var prefix, suffix string
+		if episodeOffset != 0 {
+			prefix = fmt.Sprintf("%s.S%02dE", showName, season.SeasonNumber)
+			suffix = backPositionWord
+		}
 
 		// 显示集数范围和对应关系
 		fmt.Printf("集数范围：%d-%d（使用%d位数）\n", sourceStartEp, sourceEndEp, digits)

@@ -53,18 +53,3 @@ func GetEpisodeOffset() (int, error) {
 
 	return offset, nil
 }
-
-// GetBackPositionWord 从用户获取后定位词（直接回车默认为"."）
-func GetBackPositionWord() (string, error) {
-	input, err := GetUserInput("请输入后定位词（直接回车默认为\".\"）: ")
-	if err != nil {
-		return ".", err
-	}
-
-	input = strings.TrimSpace(input)
-	if input == "" {
-		return ".", nil
-	}
-
-	return input, nil
-}
