@@ -20,17 +20,17 @@
 1. 从 [Releases](https://github.com/harry/rename-by-tmdb/releases) 页面下载适合您系统的压缩包：
 
 ### Windows
-- [rename-by-tmdb-v1.0.1-windows-amd64.zip](rename-by-tmdb-v1.0.1-windows-amd64.zip) - x64系统（推荐）
-- [rename-by-tmdb-v1.0.1-windows-arm64.zip](rename-by-tmdb-v1.0.1-windows-arm64.zip) - ARM64系统（Surface Pro X等搭载ARM处理器的设备）
-- [rename-by-tmdb-v1.0.1-windows-386.zip](rename-by-tmdb-v1.0.1-windows-386.zip) - 32位系统
+- [rename-by-tmdb-v1.0.2-windows-amd64.zip](rename-by-tmdb-v1.0.2-windows-amd64.zip) - x64系统（推荐）
+- [rename-by-tmdb-v1.0.2-windows-arm64.zip](rename-by-tmdb-v1.0.2-windows-arm64.zip) - ARM64系统（Surface Pro X等搭载ARM处理器的设备）
+- [rename-by-tmdb-v1.0.2-windows-386.zip](rename-by-tmdb-v1.0.2-windows-386.zip) - 32位系统
 
 ### macOS
-- [rename-by-tmdb-v1.0.1-darwin-amd64.tar.gz](rename-by-tmdb-v1.0.1-darwin-amd64.tar.gz) - Intel芯片
-- [rename-by-tmdb-v1.0.1-darwin-arm64.tar.gz](rename-by-tmdb-v1.0.1-darwin-arm64.tar.gz) - Apple Silicon/M系列芯片
+- [rename-by-tmdb-v1.0.2-darwin-amd64.tar.gz](rename-by-tmdb-v1.0.2-darwin-amd64.tar.gz) - Intel芯片
+- [rename-by-tmdb-v1.0.2-darwin-arm64.tar.gz](rename-by-tmdb-v1.0.2-darwin-arm64.tar.gz) - Apple Silicon/M系列芯片
 
 ### Linux
-- [rename-by-tmdb-v1.0.1-linux-amd64.tar.gz](rename-by-tmdb-v1.0.1-linux-amd64.tar.gz) - x86_64系统
-- [rename-by-tmdb-v1.0.1-linux-arm64.tar.gz](rename-by-tmdb-v1.0.1-linux-arm64.tar.gz) - ARM64系统
+- [rename-by-tmdb-v1.0.2-linux-amd64.tar.gz](rename-by-tmdb-v1.0.2-linux-amd64.tar.gz) - x86_64系统
+- [rename-by-tmdb-v1.0.2-linux-arm64.tar.gz](rename-by-tmdb-v1.0.2-linux-arm64.tar.gz) - ARM64系统
 
 2. 解压下载的文件到任意目录。
 
