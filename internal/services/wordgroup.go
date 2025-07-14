@@ -166,3 +166,56 @@ func (s *WordGroupService) AddWordUnit(groupID int, beReplaced, replace, front, 
 
 	return nil
 }
+
+// WordGroupList 表示词组列表响应
+type WordGroupList struct {
+	Total    int                `json:"total"`
+	PageNum  int                `json:"pageNum"`
+	PageSize int                `json:"pageSize"`
+	List     []models.WordGroup `json:"list"`
+}
+
+// GetWordGroupList 获取词组列表
+func (s *WordGroupService) GetWordGroupList() (*WordGroupList, error) {
+	url := fmt.Sprintf("%s/wordGroup/page?pageNum=1&pageSize=9999&keyword=", s.apiBaseURL)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("创建请求失败: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", s.authToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("读取响应失败: %v", err)
+	}
+
+	var apiResp struct {
+		Code    int           `json:"code"`
+		Message string        `json:"message"`
+		Data    WordGroupList `json:"data"`
+	}
+
+	if err := json.Unmarshal(respBody, &apiResp); err != nil {
+		return nil, fmt.Errorf("解析响应失败: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API请求失败，状态码: %d，错误信息: %s", resp.StatusCode, apiResp.Message)
+	}
+
+	if apiResp.Code != 20000 {
+		return nil, fmt.Errorf("API返回错误: [%d] %s", apiResp.Code, apiResp.Message)
+	}
+
+	return &apiResp.Data, nil
+}

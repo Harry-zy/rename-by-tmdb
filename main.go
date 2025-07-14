@@ -12,6 +12,22 @@ import (
 	"github.com/harry/rename-by-tmdb/internal/utils"
 )
 
+// findExistingWordGroup 查找已存在的词组
+func findExistingWordGroup(wordGroupService *services.WordGroupService, namingFormat string) (*models.WordGroup, error) {
+	list, err := wordGroupService.GetWordGroupList()
+	if err != nil {
+		return nil, fmt.Errorf("获取词组列表失败: %v", err)
+	}
+
+	for _, group := range list.List {
+		if group.Title == namingFormat {
+			return &group, nil
+		}
+	}
+
+	return nil, nil
+}
+
 // 处理电影重命名
 func handleMovie(tmdbService *services.TMDBService) error {
 	// 获取用户当前文件名中的标题部分
@@ -54,12 +70,24 @@ func handleMovie(tmdbService *services.TMDBService) error {
 			return fmt.Errorf("创建词组服务失败: %v", err)
 		}
 
-		// 创建词组
-		wordGroup, err = wordGroupService.CreateWordGroup(namingFormat)
+		// 查找是否存在相同的命名格式
+		existingGroup, err := findExistingWordGroup(wordGroupService, namingFormat)
 		if err != nil {
-			return fmt.Errorf("创建词组失败: %v", err)
+			return err
 		}
-		fmt.Printf("词组创建成功，ID: %d\n", wordGroup.ID)
+
+		if existingGroup != nil {
+			// 使用已存在的词组
+			wordGroup = existingGroup
+			fmt.Printf("使用已存在的词组，ID: %d\n", wordGroup.ID)
+		} else {
+			// 创建新词组
+			wordGroup, err = wordGroupService.CreateWordGroup(namingFormat)
+			if err != nil {
+				return fmt.Errorf("创建词组失败: %v", err)
+			}
+			fmt.Printf("词组创建成功，ID: %d\n", wordGroup.ID)
+		}
 
 		// 构建电影的替换规则
 		beReplaced := fmt.Sprintf("%s.*", regexp.QuoteMeta(fileTitle))
@@ -154,12 +182,24 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 			return fmt.Errorf("创建词组服务失败: %v", err)
 		}
 
-		// 创建词组
-		wordGroup, err = wordGroupService.CreateWordGroup(namingFormat)
+		// 查找是否存在相同的命名格式
+		existingGroup, err := findExistingWordGroup(wordGroupService, namingFormat)
 		if err != nil {
-			return fmt.Errorf("创建词组失败: %v", err)
+			return err
 		}
-		fmt.Printf("词组创建成功，ID: %d\n", wordGroup.ID)
+
+		if existingGroup != nil {
+			// 使用已存在的词组
+			wordGroup = existingGroup
+			fmt.Printf("使用已存在的词组，ID: %d\n", wordGroup.ID)
+		} else {
+			// 创建新词组
+			wordGroup, err = wordGroupService.CreateWordGroup(namingFormat)
+			if err != nil {
+				return fmt.Errorf("创建词组失败: %v", err)
+			}
+			fmt.Printf("词组创建成功，ID: %d\n", wordGroup.ID)
+		}
 	}
 
 	// 获取用户当前文件名中的标题部分
