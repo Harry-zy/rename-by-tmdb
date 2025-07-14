@@ -174,6 +174,17 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		return fmt.Errorf("错误: %v", err)
 	}
 
+	var specificSeasons []int
+	var generateAllSeasons bool
+
+	if !hasSeason {
+		// 如果不使用原文件名季数，则询问用户要生成哪些季
+		specificSeasons, generateAllSeasons, err = utils.GetSpecificSeasons()
+		if err != nil {
+			return fmt.Errorf("错误: %v", err)
+		}
+	}
+
 	// 获取集数偏移量
 	episodeOffset, err := utils.GetEpisodeOffset()
 	if err != nil {
@@ -187,12 +198,26 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 
 	// 为每一季生成替换规则
 	for _, season := range show.Seasons {
-		// 跳过第0季（通常是特别篇）
-		if season.SeasonNumber == 0 {
-			continue
+		// 如果不使用原文件名季数且不是生成所有季，则检查是否是用户指定的季
+		if !hasSeason && !generateAllSeasons {
+			isSpecificSeason := false
+			for _, s := range specificSeasons {
+				if s == season.SeasonNumber {
+					isSpecificSeason = true
+					break
+				}
+			}
+			if !isSpecificSeason {
+				continue
+			}
 		}
 
-		fmt.Printf("\n--- 第 %d 季 ---\n", season.SeasonNumber)
+		// 显示季数信息（为第0季添加特别说明）
+		if season.SeasonNumber == 0 {
+			fmt.Printf("\n--- 特别篇 ---\n")
+		} else {
+			fmt.Printf("\n--- 第 %d 季 ---\n", season.SeasonNumber)
+		}
 
 		// 获取该季的详细信息
 		seasonDetails, err := tmdbService.FetchSeasonDetails(seriesID, season.SeasonNumber)

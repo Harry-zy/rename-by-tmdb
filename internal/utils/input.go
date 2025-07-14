@@ -53,3 +53,43 @@ func GetEpisodeOffset() (int, error) {
 
 	return offset, nil
 }
+
+// GetSpecificSeasons 从用户获取指定的季数
+func GetSpecificSeasons() ([]int, bool, error) {
+	input, err := GetUserInput("请输入要生成的季数（多季用;分隔，直接回车生成所有季，0表示特别篇）: ")
+	if err != nil {
+		return nil, false, err
+	}
+
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return nil, true, nil // 返回 nil, true 表示生成所有季
+	}
+
+	// 分割输入的季数
+	seasonStrs := strings.Split(input, ";")
+	var seasons []int
+
+	// 解析每个季数
+	for _, s := range seasonStrs {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+
+		season, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, false, fmt.Errorf("无效的季数 '%s': %v", s, err)
+		}
+		if season < 0 {
+			return nil, false, fmt.Errorf("季数不能为负数: %d", season)
+		}
+		seasons = append(seasons, season)
+	}
+
+	if len(seasons) == 0 {
+		return nil, true, nil // 如果没有有效的季数，则生成所有季
+	}
+
+	return seasons, false, nil
+}
