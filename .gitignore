@@ -15,3 +15,6 @@ dist/rename-by-tmdb-*
 
 # Environment
 .env 
+
+# 忽略scripts目录下的README.md
+scripts/README.md 
