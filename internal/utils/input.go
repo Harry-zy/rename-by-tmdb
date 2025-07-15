@@ -93,3 +93,28 @@ func GetSpecificSeasons() ([]int, bool, error) {
 
 	return seasons, false, nil
 }
+
+// GetIncludeSpecialSeason 从用户获取是否包含第0季（特别篇）的选择（直接回车默认为n）
+func GetIncludeSpecialSeason() (bool, error) {
+	input, err := GetUserInput("是否包含第0季（特别篇）？(y/n，直接回车默认为n): ")
+	if err != nil {
+		return false, err
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	return input == "y" || input == "yes", nil
+}
+
+// GetPadZeroChoice 从用户获取是否需要补0站位的选择（直接回车默认为y）
+func GetPadZeroChoice() (bool, error) {
+	input, err := GetUserInput("集数是否补0站位？(y/n，直接回车默认为y): ")
+	if err != nil {
+		return false, err
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "" || input == "y" || input == "yes" {
+		return true, nil
+	}
+	return false, nil
+}

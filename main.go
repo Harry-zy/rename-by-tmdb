@@ -161,12 +161,6 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		}
 	}
 
-	// 确保至少使用2位数
-	digits := len(strconv.Itoa(maxEpisodeNumber))
-	if digits < 2 {
-		digits = 2
-	}
-
 	// 创建命名格式
 	namingFormat := fmt.Sprintf("%s.%s.{[tmdbid=%s;type=%s]}",
 		showName, year, seriesID, showType)
@@ -216,6 +210,7 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 
 	var specificSeasons []int
 	var generateAllSeasons bool
+	var includeSpecialSeason bool
 
 	if !hasSeason {
 		// 如果不使用原文件名季数，则询问用户要生成哪些季
@@ -223,10 +218,24 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		if err != nil {
 			return fmt.Errorf("错误: %v", err)
 		}
+
+		// 如果选择生成所有季，询问是否包含第0季
+		if generateAllSeasons {
+			includeSpecialSeason, err = utils.GetIncludeSpecialSeason()
+			if err != nil {
+				return fmt.Errorf("错误: %v", err)
+			}
+		}
 	}
 
 	// 获取集数偏移量
 	episodeOffset, err := utils.GetEpisodeOffset()
+	if err != nil {
+		return fmt.Errorf("错误: %v", err)
+	}
+
+	// 获取是否需要补0站位
+	padZero, err := utils.GetPadZeroChoice()
 	if err != nil {
 		return fmt.Errorf("错误: %v", err)
 	}
@@ -250,6 +259,11 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 			if !isSpecificSeason {
 				continue
 			}
+		}
+
+		// 如果是第0季（特别篇），且是生成所有季的情况，检查是否需要包含第0季
+		if season.SeasonNumber == 0 && generateAllSeasons && !includeSpecialSeason {
+			continue
 		}
 
 		// 显示季数信息（为第0季添加特别说明）
@@ -285,15 +299,36 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 			continue
 		}
 
+		// 计算需要的位数
+		digits := len(strconv.Itoa(maxEpisodeNumber))
+		if !padZero {
+			digits = 1 // 如果不需要补0，则使用1位数
+		}
+		if digits < 2 && padZero {
+			digits = 2 // 如果需要补0，确保至少使用2位数
+		}
+
+		// 显示集数范围和对应关系
+		if padZero {
+			fmt.Printf("集数范围：%d-%d（使用%d位数）\n", sourceStartEp, sourceEndEp, digits)
+		} else {
+			fmt.Printf("集数范围：%d-%d（不补0）\n", sourceStartEp, sourceEndEp)
+		}
+		if episodeOffset != 0 {
+			fmt.Printf("集数偏移量：%+d\n", episodeOffset)
+			fmt.Printf("原始集数示例：%d → 实际集数：%d\n",
+				sourceStartEp, startEp)
+		}
+
 		// 构建匹配范围的正则表达式
 		var beReplaced string
 		if hasSeason {
-			beReplaced = fmt.Sprintf("%s.*S%02dE(%s)",
+			beReplaced = fmt.Sprintf("%s.*S%02d(?:E|Ep|EP|[Ee]pisode|[Ee]p)?(%s)",
 				regexp.QuoteMeta(fileTitle),
 				season.SeasonNumber,
 				utils.GenerateRangePattern(sourceStartEp, sourceEndEp, digits))
 		} else {
-			beReplaced = fmt.Sprintf("%s.*(?:S\\d{2})?E(%s)",
+			beReplaced = fmt.Sprintf("%s.*?(?:S\\d{2})?(?:E|Ep|EP|[Ee]pisode|[Ee]p)?(%s)",
 				regexp.QuoteMeta(fileTitle),
 				utils.GenerateRangePattern(sourceStartEp, sourceEndEp, digits))
 		}
