@@ -10,27 +10,30 @@
 - 支持集数偏移（仅剧集）
 - 支持季数匹配（仅剧集）：
   - 使用原文件名季数
-  - 指定特定季数（多个季数用分号分隔）
-  - 生成所有季数
-- 可选上传规则到远程服务器
+  - 指定特定季数（多个季数用分号分隔，0表示特别篇）
+  - 生成所有季（可选是否包含特别篇）
+- 支持集数格式选择：
+  - 补0站位（如：01、02、03...）
+  - 不补0（如：1、2、3...）
 - 智能复用已存在的词组，避免重复创建
+- 可选上传规则到远程服务器
 
 ## 快速开始
 
 1. 从 [Releases](https://github.com/harry/rename-by-tmdb/releases) 页面下载适合您系统的压缩包：
 
 ### Windows
-- [rename-by-tmdb-v1.0.2-windows-amd64.zip](rename-by-tmdb-v1.0.2-windows-amd64.zip) - x64系统（推荐）
-- [rename-by-tmdb-v1.0.2-windows-arm64.zip](rename-by-tmdb-v1.0.2-windows-arm64.zip) - ARM64系统（Surface Pro X等搭载ARM处理器的设备）
-- [rename-by-tmdb-v1.0.2-windows-386.zip](rename-by-tmdb-v1.0.2-windows-386.zip) - 32位系统
+- [rename-by-tmdb-v1.0.3-windows-amd64.zip](rename-by-tmdb-v1.0.3-windows-amd64.zip) - x64系统（推荐）
+- [rename-by-tmdb-v1.0.3-windows-arm64.zip](rename-by-tmdb-v1.0.3-windows-arm64.zip) - ARM64系统（Surface Pro X等搭载ARM处理器的设备）
+- [rename-by-tmdb-v1.0.3-windows-386.zip](rename-by-tmdb-v1.0.3-windows-386.zip) - 32位系统
 
 ### macOS
-- [rename-by-tmdb-v1.0.2-darwin-amd64.tar.gz](rename-by-tmdb-v1.0.2-darwin-amd64.tar.gz) - Intel芯片
-- [rename-by-tmdb-v1.0.2-darwin-arm64.tar.gz](rename-by-tmdb-v1.0.2-darwin-arm64.tar.gz) - Apple Silicon/M系列芯片
+- [rename-by-tmdb-v1.0.3-darwin-amd64.tar.gz](rename-by-tmdb-v1.0.3-darwin-amd64.tar.gz) - Intel芯片
+- [rename-by-tmdb-v1.0.3-darwin-arm64.tar.gz](rename-by-tmdb-v1.0.3-darwin-arm64.tar.gz) - Apple Silicon/M系列芯片
 
 ### Linux
-- [rename-by-tmdb-v1.0.2-linux-amd64.tar.gz](rename-by-tmdb-v1.0.2-linux-amd64.tar.gz) - x86_64系统
-- [rename-by-tmdb-v1.0.2-linux-arm64.tar.gz](rename-by-tmdb-v1.0.2-linux-arm64.tar.gz) - ARM64系统
+- [rename-by-tmdb-v1.0.3-linux-amd64.tar.gz](rename-by-tmdb-v1.0.3-linux-amd64.tar.gz) - x86_64系统
+- [rename-by-tmdb-v1.0.3-linux-arm64.tar.gz](rename-by-tmdb-v1.0.3-linux-arm64.tar.gz) - ARM64系统
 
 2. 解压下载的文件到任意目录。
 
@@ -123,11 +126,6 @@ The\.Matrix\.1999[^.]*\.
 <summary>示例2：需要根据集数重新定义季数（航海王）</summary>
 
 ```
-API server listening at: 127.0.0.1:65274
-debugserver-@(#)PROGRAM:LLDB  PROJECT:lldb-1700.0.9.502
- for arm64.
-Got a connection, launched process /Users/harry/Library/Caches/JetBrains/GoLand2023.3/tmp/GoLand/___go_build_github_com_harry_rename_by_tmdb (pid = 95261).
-WARNING: undefined behavior - version of Delve is too old for Go version go1.23.9 (maximum supported version 1.22)
 成功加载配置文件: .env
 请选择媒体类型：
 1. 电影
@@ -139,13 +137,14 @@ WARNING: undefined behavior - version of Delve is too old for Go version go1.23.
 使用已存在的词组，ID: 139  # 发现已存在相同的命名格式，自动复用词组
 请输入当前文件名中的标题部分（例如：One.Piece）: One.Piece
 是否使用原文件名季数？(y/n，直接回车默认为y): n
-请输入要生成的季数（多季用;分隔，直接回车生成所有季）: 1;2;3  # 只生成第1-3季
+请输入要生成的季数（多季用;分隔，直接回车生成所有季，0表示特别篇）: 1;2;3  # 只生成第1-3季
 请输入集数偏移量（如：+1、-1，直接回车表示不偏移）: 
+集数是否补0站位？(y/n，直接回车默认为y): n
 
 === 航海王 各季重命名正则表达式 ===
 
 --- 第 1 季 ---
-集数范围：1-61（使用4位数）
+集数范围：1-61（不补0）
 
 被替换词：
 One\.Piece.*(?:S\d{2})?E((0001|0002|0003|0004|0005|0006|0007|0008|0009|0010|0011|0012|0013|0014|0015|0016|0017|0018|0019|0020|0021|0022|0023|0024|0025|0026|0027|0028|0029|0030|0031|0032|0033|0034|0035|0036|0037|0038|0039|0040|0041|0042|0043|0044|0045|0046|0047|0048|0049|0050|0051|0052|0053|0054|0055|0056|0057|0058|0059|0060|0061))
@@ -154,7 +153,7 @@ One\.Piece.*(?:S\d{2})?E((0001|0002|0003|0004|0005|0006|0007|0008|0009|0010|0011
 第 1 季替换规则上传成功
 
 --- 第 2 季 ---
-集数范围：62-77（使用4位数）
+集数范围：62-77（不补0）
 
 被替换词：
 One\.Piece.*(?:S\d{2})?E((0062|0063|0064|0065|0066|0067|0068|0069|0070|0071|0072|0073|0074|0075|0076|0077))
@@ -163,7 +162,7 @@ One\.Piece.*(?:S\d{2})?E((0062|0063|0064|0065|0066|0067|0068|0069|0070|0071|0072
 第 2 季替换规则上传成功
 
 --- 第 3 季 ---
-集数范围：78-91（使用4位数）
+集数范围：78-91（不补0）
 
 被替换词：
 One\.Piece.*(?:S\d{2})?E((0078|0079|0080|0081|0082|0083|0084|0085|0086|0087|0088|0089|0090|0091))
@@ -350,12 +349,6 @@ One\.Piece.*(?:S\d{2})?E((1089|1090|1091|1092|1093|1094|1095|1096|1097|1098|1099
 ### 原文件中《火影忍者》与《火影忍者：疾风传》使用了连续的集数，因此从221集开始为《火影忍者：疾风传》
 
 ```
-p/GoLand/___go_build_github_com_harry_rename_by_tmdb --
-API server listening at: 127.0.0.1:52135
-debugserver-@(#)PROGRAM:LLDB  PROJECT:lldb-1700.0.9.502
- for arm64.
-Got a connection, launched process /Users/harry/Library/Caches/JetBrains/GoLand2023.3/tmp/GoLand/___go_build_github_com_harry_rename_by_tmdb (pid = 2753).
-WARNING: undefined behavior - version of Delve is too old for Go version go1.23.9 (maximum supported version 1.22)
 成功加载配置文件: .env
 请选择媒体类型：
 1. 电影
@@ -713,6 +706,15 @@ JOJO的奇妙冒险.2012.{[tmdbid=45790;type=tv]}
 请输入集数偏移量（如：+1、-1，直接回车表示不偏移）: 
 
 === JOJO的奇妙冒险 各季重命名正则表达式 ===
+
+--- 特别篇 ---
+集数范围：1-2（使用2位数）
+
+被替换词：
+JoJos\.Bizarre\.Adventure.*S00E((01|02))
+替换词：
+JOJO的奇妙冒险.S00E\1.2012.{[tmdbid=45790;type=tv]}
+第 0 季替换规则上传成功
 
 --- 第 1 季 ---
 集数范围：1-26（使用2位数）
