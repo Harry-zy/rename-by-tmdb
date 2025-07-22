@@ -118,3 +118,17 @@ func GetPadZeroChoice() (bool, error) {
 	}
 	return false, nil
 }
+
+// GetEpisodeContinuousChoice 从用户获取集数是否连续的选择（直接回车默认为y）
+func GetEpisodeContinuousChoice() (bool, error) {
+	input, err := GetUserInput("集数是否连续？(y/n，直接回车默认为y): ")
+	if err != nil {
+		return false, err
+	}
+
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "" || input == "y" || input == "yes" {
+		return true, nil
+	}
+	return false, nil
+}
