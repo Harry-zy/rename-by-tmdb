@@ -12,6 +12,66 @@ import (
 	"github.com/harry/rename-by-tmdb/internal/utils"
 )
 
+// romanToArabic 将罗马数字转换为阿拉伯数字
+func romanToArabic(roman string) int {
+	romanMap := map[byte]int{
+		'i': 1, 'v': 5, 'x': 10, 'l': 50,
+		'c': 100, 'd': 500, 'm': 1000,
+	}
+
+	roman = strings.ToLower(roman)
+	total := 0
+	prevValue := 0
+
+	for i := len(roman) - 1; i >= 0; i-- {
+		value := romanMap[roman[i]]
+		if value < prevValue {
+			total -= value
+		} else {
+			total += value
+		}
+		prevValue = value
+	}
+
+	return total
+}
+
+// extractPartInfo 从文件标题中提取part信息
+func extractPartInfo(fileTitle string) string {
+	// 将输入转为小写进行匹配
+	lowerTitle := strings.ToLower(fileTitle)
+
+	// 先检查数字格式的part
+	digitPatterns := []string{
+		`part\.?(\d+)`,    // part1, part.1
+		`part\.?\s+(\d+)`, // part 1
+	}
+
+	for _, pattern := range digitPatterns {
+		re := regexp.MustCompile(pattern)
+		if matches := re.FindStringSubmatch(lowerTitle); len(matches) > 1 {
+			return "part" + matches[1]
+		}
+	}
+
+	// 检查罗马数字格式的part
+	romanPatterns := []string{
+		`part\.?([ivxlcdm]+)`,    // part.i, part.ii, part.iii等
+		`part\.?\s+([ivxlcdm]+)`, // part i, part ii等
+	}
+
+	for _, pattern := range romanPatterns {
+		re := regexp.MustCompile(pattern)
+		if matches := re.FindStringSubmatch(lowerTitle); len(matches) > 1 {
+			// 将罗马数字转换为阿拉伯数字
+			arabicNum := romanToArabic(matches[1])
+			return fmt.Sprintf("part%d", arabicNum)
+		}
+	}
+
+	return ""
+}
+
 // findExistingWordGroup 查找已存在的词组
 func findExistingWordGroup(wordGroupService *services.WordGroupService, namingFormat string) (*models.WordGroup, error) {
 	list, err := wordGroupService.GetWordGroupList()
@@ -30,12 +90,6 @@ func findExistingWordGroup(wordGroupService *services.WordGroupService, namingFo
 
 // 处理电影重命名
 func handleMovie(tmdbService *services.TMDBService) error {
-	// 获取用户当前文件名中的标题部分
-	fileTitle, err := utils.GetUserInput("请输入当前文件名中的标题部分（例如：The.Matrix）: ")
-	if err != nil {
-		return fmt.Errorf("错误: %v", err)
-	}
-
 	// 获取电影ID
 	movieID, err := utils.GetUserInput("请输入电影ID: ")
 	if err != nil {
@@ -89,9 +143,23 @@ func handleMovie(tmdbService *services.TMDBService) error {
 			fmt.Printf("词组创建成功，ID: %d\n", wordGroup.ID)
 		}
 
+		// 获取用户当前文件名中的标题部分
+		fileTitle, err := utils.GetUserInput("请输入当前文件名中的标题部分（例如：The.Matrix）: ")
+		if err != nil {
+			return fmt.Errorf("错误: %v", err)
+		}
+
+		// 检测并提取part信息
+		partInfo := extractPartInfo(fileTitle)
+
 		// 构建电影的替换规则
 		beReplaced := fmt.Sprintf("%s.*", regexp.QuoteMeta(fileTitle))
-		replace := fmt.Sprintf("%s.%s.{[tmdbid=%s;type=movie]}", movieName, year, movieID)
+		var replace string
+		if partInfo != "" {
+			replace = fmt.Sprintf("%s.%s.%s.{[tmdbid=%s;type=movie]}", movieName, year, partInfo, movieID)
+		} else {
+			replace = fmt.Sprintf("%s.%s.{[tmdbid=%s;type=movie]}", movieName, year, movieID)
+		}
 
 		fmt.Printf("\n被替换词：\n%s\n", beReplaced)
 		fmt.Printf("替换词：\n%s\n", replace)
@@ -240,6 +308,15 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		return fmt.Errorf("错误: %v", err)
 	}
 
+	// 如果需要补0，询问集数是否连续
+	var episodeContinuous bool
+	if padZero {
+		episodeContinuous, err = utils.GetEpisodeContinuousChoice()
+		if err != nil {
+			return fmt.Errorf("错误: %v", err)
+		}
+	}
+
 	// 设置后定位词为".年份."
 	backPositionWord := fmt.Sprintf(".%s.", year)
 
@@ -300,17 +377,29 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		}
 
 		// 计算需要的位数
-		digits := len(strconv.Itoa(maxEpisodeNumber))
+		var digits int
 		if !padZero {
 			digits = 1 // 如果不需要补0，则使用1位数
-		}
-		if digits < 2 && padZero {
-			digits = 2 // 如果需要补0，确保至少使用2位数
+		} else {
+			if episodeContinuous {
+				// 连续集数：使用全剧最大集数来确定位数
+				digits = len(strconv.Itoa(maxEpisodeNumber))
+			} else {
+				// 不连续集数：使用当前季最大集数来确定位数
+				digits = len(strconv.Itoa(endEp))
+			}
+			if digits < 2 {
+				digits = 2 // 确保至少使用2位数
+			}
 		}
 
 		// 显示集数范围和对应关系
 		if padZero {
-			fmt.Printf("集数范围：%d-%d（使用%d位数）\n", sourceStartEp, sourceEndEp, digits)
+			if episodeContinuous {
+				fmt.Printf("集数范围：%d-%d（连续，使用%d位数）\n", sourceStartEp, sourceEndEp, digits)
+			} else {
+				fmt.Printf("集数范围：%d-%d（不连续，使用%d位数）\n", sourceStartEp, sourceEndEp, digits)
+			}
 		} else {
 			fmt.Printf("集数范围：%d-%d（不补0）\n", sourceStartEp, sourceEndEp)
 		}
@@ -341,14 +430,6 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		if episodeOffset != 0 {
 			prefix = fmt.Sprintf("%s.S%02dE", showName, season.SeasonNumber)
 			suffix = backPositionWord
-		}
-
-		// 显示集数范围和对应关系
-		fmt.Printf("集数范围：%d-%d（使用%d位数）\n", sourceStartEp, sourceEndEp, digits)
-		if episodeOffset != 0 {
-			fmt.Printf("集数偏移量：%+d\n", episodeOffset)
-			fmt.Printf("原始集数示例：%0*d → 实际集数：%0*d\n",
-				digits, sourceStartEp, digits, startEp)
 		}
 
 		fmt.Printf("\n被替换词：\n%s\n", beReplaced)

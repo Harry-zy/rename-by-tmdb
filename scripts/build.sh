@@ -4,64 +4,75 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # 获取项目根目录
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
-
-# 版本号
-VERSION="v1.0.1"
-
-# 程序名称
-APP_NAME="rename-by-tmdb"
-
-# 构建目录
-BUILD_DIR="${PROJECT_ROOT}/dist"
-
-# 清理构建目录
-rm -rf "$BUILD_DIR"
-mkdir -p "$BUILD_DIR"
-
-# 编译函数
-build() {
-    os=$1
-    arch=$2
-    extension=$3
-    
-    output="${BUILD_DIR}/${APP_NAME}-${os}-${arch}${extension}"
-    
-    echo "Building for ${os}/${arch}..."
-    cd "$PROJECT_ROOT"
-    GOOS=$os GOARCH=$arch go build -o "$output" .
-    
-    # 创建发布包
-    cd "$BUILD_DIR"
-    if [ "$os" = "windows" ]; then
-        zip "${APP_NAME}-${VERSION}-${os}-${arch}.zip" \
-            "${APP_NAME}-${os}-${arch}${extension}" \
-            "${PROJECT_ROOT}/README.md" \
-            "${PROJECT_ROOT}/.env.example"
-    else
-        tar -czf "${APP_NAME}-${VERSION}-${os}-${arch}.tar.gz" \
-            "${APP_NAME}-${os}-${arch}${extension}" \
-            -C "${PROJECT_ROOT}" README.md .env.example
-    fi
-    
-    echo "Built and packaged ${os}/${arch}"
-}
+# 设置输出目录
+OUTPUT_DIR="$PROJECT_ROOT/dist"
 
 echo "Building from $PROJECT_ROOT"
-echo "Output directory: $BUILD_DIR"
+echo "Output directory: $OUTPUT_DIR"
 
-# 为不同平台构建
-# macOS
-build "darwin" "amd64" ""      # Intel Mac
-build "darwin" "arm64" ""      # Apple Silicon Mac
+# 创建输出目录
+mkdir -p "$OUTPUT_DIR"
 
-# Linux
-build "linux" "amd64" ""       # 64位 Linux
-build "linux" "arm64" ""       # ARM64 Linux
+# 构建函数
+build_binary() {
+    local cmd=$1
+    local os=$2
+    local arch=$3
+    local ext=""
+    local binary_name="rename-by-tmdb"
+    local list_binary_name="list"
 
-# Windows
-build "windows" "amd64" ".exe" # 64位 Windows (x64)
-build "windows" "386" ".exe"   # 32位 Windows (x86)
-build "windows" "arm64" ".exe" # ARM64 Windows
+    # Windows二进制文件添加.exe后缀
+    if [ "$os" = "windows" ]; then
+        ext=".exe"
+    fi
 
-echo -e "\nBuild complete! Files in ${BUILD_DIR}:"
-ls -l "$BUILD_DIR" 
+    echo "Building $cmd for $os/$arch..."
+    
+    # 设置交叉编译环境变量
+    export GOOS=$os
+    export GOARCH=$arch
+
+    if [ "$cmd" = "rename" ]; then
+        # 构建主程序
+        go build -o "$OUTPUT_DIR/${binary_name}-${os}-${arch}${ext}" "$PROJECT_ROOT"
+        
+        # 打包文件
+        if [ "$os" = "windows" ]; then
+            (cd "$OUTPUT_DIR" && zip "${binary_name}-v1.0.3-${os}-${arch}.zip" "${binary_name}-${os}-${arch}${ext}" "$PROJECT_ROOT/README.md" "$PROJECT_ROOT/.env.example")
+        else
+            tar -czf "$OUTPUT_DIR/${binary_name}-v1.0.3-${os}-${arch}.tar.gz" -C "$OUTPUT_DIR" "${binary_name}-${os}-${arch}" -C "$PROJECT_ROOT" "README.md" ".env.example"
+        fi
+    elif [ "$cmd" = "list" ]; then
+        # 构建list命令
+        go build -o "$OUTPUT_DIR/${list_binary_name}-${os}-${arch}${ext}" "$PROJECT_ROOT/cmd/list"
+        
+        # 打包文件
+        if [ "$os" = "windows" ]; then
+            (cd "$OUTPUT_DIR" && zip "${list_binary_name}-v1.0.3-${os}-${arch}.zip" "${list_binary_name}-${os}-${arch}${ext}")
+        else
+            tar -czf "$OUTPUT_DIR/${list_binary_name}-v1.0.3-${os}-${arch}.tar.gz" -C "$OUTPUT_DIR" "${list_binary_name}-${os}-${arch}"
+        fi
+    fi
+
+    echo "Built and packaged $os/$arch"
+}
+
+# 构建所有平台的二进制文件
+for cmd in "rename" "list"; do
+    # macOS (Intel & Apple Silicon)
+    build_binary $cmd "darwin" "amd64"
+    build_binary $cmd "darwin" "arm64"
+
+    # Linux (x86_64 & ARM64)
+    build_binary $cmd "linux" "amd64"
+    build_binary $cmd "linux" "arm64"
+
+    # Windows (x86_64, x86 & ARM64)
+    build_binary $cmd "windows" "amd64"
+    build_binary $cmd "windows" "386"
+    build_binary $cmd "windows" "arm64"
+done
+
+echo -e "\nBuild complete! Files in $OUTPUT_DIR:"
+ls -l "$OUTPUT_DIR" 
