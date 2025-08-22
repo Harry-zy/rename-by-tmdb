@@ -201,6 +201,15 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		year = show.FirstAirDate[:4]
 	}
 
+	// 询问是否以日期判断集数
+	fmt.Print("是否以日期判断集数？(y/N，直接回车默认为N): ")
+	useDateForEpisode, err := utils.GetUserInput("")
+	if err != nil {
+		return fmt.Errorf("错误: %v", err)
+	}
+	useDateForEpisode = strings.ToLower(strings.TrimSpace(useDateForEpisode))
+	isDateMode := useDateForEpisode == "y" || useDateForEpisode == "yes"
+
 	// 显示剧集命名格式
 	showType := "tv"
 	if show.Type == "movie" {
@@ -297,23 +306,28 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 	}
 
 	// 获取集数偏移量
-	episodeOffset, err := utils.GetEpisodeOffset()
-	if err != nil {
-		return fmt.Errorf("错误: %v", err)
+	var episodeOffset int
+	if !isDateMode {
+		episodeOffset, err = utils.GetEpisodeOffset()
+		if err != nil {
+			return fmt.Errorf("错误: %v", err)
+		}
 	}
 
 	// 获取是否需要补0站位
-	padZero, err := utils.GetPadZeroChoice()
-	if err != nil {
-		return fmt.Errorf("错误: %v", err)
-	}
-
-	// 如果需要补0，询问集数是否连续
-	var episodeContinuous bool
-	if padZero {
-		episodeContinuous, err = utils.GetEpisodeContinuousChoice()
+	var padZero, episodeContinuous bool
+	if !isDateMode {
+		padZero, err = utils.GetPadZeroChoice()
 		if err != nil {
 			return fmt.Errorf("错误: %v", err)
+		}
+
+		// 如果需要补0，询问集数是否连续
+		if padZero {
+			episodeContinuous, err = utils.GetEpisodeContinuousChoice()
+			if err != nil {
+				return fmt.Errorf("错误: %v", err)
+			}
 		}
 	}
 
@@ -366,6 +380,43 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 		startEp := seasonDetails.Episodes[0].EpisodeNumber
 		endEp := seasonDetails.Episodes[len(seasonDetails.Episodes)-1].EpisodeNumber
 
+		if isDateMode {
+			// 日期模式：为每一集生成替换规则
+			fmt.Printf("\n=== 第 %d 季 - 日期模式 ===\n", season.SeasonNumber)
+
+			for _, episode := range seasonDetails.Episodes {
+				// 只处理有播出日期的集数
+				if episode.AirDate == "" {
+					fmt.Printf("第%d集：未获取到播出日期，跳过\n", episode.EpisodeNumber)
+					continue
+				}
+
+				// 格式化播出日期为YYYYMMDD
+				airDate := strings.ReplaceAll(episode.AirDate, "-", "")
+
+				// 构建被替换词：标题+播出日期+后面所有字符
+				beReplaced := fmt.Sprintf("%s.*%s.*", regexp.QuoteMeta(fileTitle), airDate)
+
+				// 构建替换词：剧集名称.S季数.E集数.年份.{[tmdbid=ID;type=tv]}
+				replace := fmt.Sprintf("%s.S%02dE%02d.%s.{[tmdbid=%s;type=%s]}",
+					showName, season.SeasonNumber, episode.EpisodeNumber, year, seriesID, showType)
+
+				fmt.Printf("\n第%d集 (播出日期: %s):\n", episode.EpisodeNumber, episode.AirDate)
+				fmt.Printf("被替换词：\n%s\n", beReplaced)
+				fmt.Printf("替换词：\n%s\n", replace)
+
+				// 上传替换规则
+				if utils.IsUploadEnabled() {
+					err = wordGroupService.AddWordUnit(wordGroup.ID, beReplaced, replace, "", "", 0)
+					if err != nil {
+						return fmt.Errorf("上传第 %d 季第 %d 集替换规则失败: %v", season.SeasonNumber, episode.EpisodeNumber, err)
+					}
+					fmt.Printf("第 %d 季第 %d 集替换规则上传成功\n", season.SeasonNumber, episode.EpisodeNumber)
+				}
+			}
+			continue // 跳过原有的集数范围处理逻辑
+		}
+
 		// 计算原文件中的集数范围（减去偏移量，因为原文件需要减去这个值）
 		sourceStartEp := startEp - episodeOffset
 		sourceEndEp := endEp - episodeOffset
@@ -401,7 +452,7 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 				fmt.Printf("集数范围：%d-%d（不连续，使用%d位数）\n", sourceStartEp, sourceEndEp, digits)
 			}
 		} else {
-			fmt.Printf("集数范围：%d-%d（不补0）\n", sourceStartEp, sourceEndEp)
+			fmt.Printf("集数范围：%d-%d（不补0）\n", sourceStartEp, sourceEndEp, digits)
 		}
 		if episodeOffset != 0 {
 			fmt.Printf("集数偏移量：%+d\n", episodeOffset)
@@ -456,13 +507,19 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 	fmt.Println("2. 替换词中的'\\1'表示保留原始集数")
 	fmt.Println("3. [^.]* 匹配除点号外的任意字符，用于处理标题和集数之间可能存在的额外字符")
 	fmt.Println("4. 替换后的文件名使用TMDB中的官方剧集名称")
-	fmt.Printf("5. 所有集数都使用相同的位数（由最大集数决定），不足位数补0\n")
-	fmt.Printf("   例如：如果最大集数是500（3位），则第1集应该写作001\n")
+	if isDateMode {
+		fmt.Println("5. 日期模式：使用播出日期匹配文件名，每集生成独立的替换规则")
+		fmt.Printf("6. 播出日期格式：YYYYMMDD（如：%s）\n", strings.ReplaceAll(show.FirstAirDate, "-", ""))
+		fmt.Println("7. 只处理有播出日期的集数，未获取到播出日期的集数将被跳过")
+	} else {
+		fmt.Printf("5. 所有集数都使用相同的位数（由最大集数决定），不足位数补0\n")
+		fmt.Printf("   例如：如果最大集数是500（3位），则第1集应该写作001\n")
+	}
 	if !hasSeason {
-		fmt.Println("6. 原文件名不包含季数，仅匹配集数部分")
+		fmt.Printf("8. 原文件名不包含季数，仅匹配集数部分\n")
 	}
 	if episodeOffset != 0 {
-		fmt.Printf("7. 被替换词中的集数范围已经过调整，可以直接匹配原文件名中的集数\n")
+		fmt.Printf("9. 被替换词中的集数范围已经过调整，可以直接匹配原文件名中的集数\n")
 	}
 
 	return nil

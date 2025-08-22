@@ -2,7 +2,8 @@ package models
 
 // TMDBEpisode 表示TMDB的一集信息
 type TMDBEpisode struct {
-	EpisodeNumber int `json:"episode_number"`
+	EpisodeNumber int    `json:"episode_number"`
+	AirDate       string `json:"air_date"`
 }
 
 // TMDBSeason 表示TMDB的一季信息
