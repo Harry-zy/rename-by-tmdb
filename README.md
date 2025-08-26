@@ -37,17 +37,17 @@
 从 [Releases](https://github.com/harry/rename-by-tmdb/releases) 页面下载适合您系统的版本：
 
 #### Windows
-- `rename-by-tmdb-v1.0.3-windows-amd64.zip` - x64系统（推荐）
-- `rename-by-tmdb-v1.0.3-windows-arm64.zip` - ARM64系统
-- `rename-by-tmdb-v1.0.3-windows-386.zip` - 32位系统
+- `rename-by-tmdb-v1.0.5-windows-amd64.zip` - x64系统（推荐）
+- `rename-by-tmdb-v1.0.5-windows-arm64.zip` - ARM64系统
+- `rename-by-tmdb-v1.0.5-windows-386.zip` - 32位系统
 
 #### macOS
-- `rename-by-tmdb-v1.0.3-darwin-amd64.tar.gz` - Intel芯片
-- `rename-by-tmdb-v1.0.3-darwin-arm64.tar.gz` - Apple Silicon/M系列芯片
+- `rename-by-tmdb-v1.0.5-darwin-amd64.tar.gz` - Intel芯片
+- `rename-by-tmdb-v1.0.5-darwin-arm64.tar.gz` - Apple Silicon/M系列芯片
 
 #### Linux
-- `rename-by-tmdb-v1.0.3-linux-amd64.tar.gz` - x86_64系统
-- `rename-by-tmdb-v1.0.3-linux-arm64.tar.gz` - ARM64系统
+- `rename-by-tmdb-v1.0.5-linux-amd64.tar.gz` - x86_64系统
+- `rename-by-tmdb-v1.0.5-linux-arm64.tar.gz` - ARM64系统
 
 ### 2. 解压文件
 将下载的文件解压到任意目录。
