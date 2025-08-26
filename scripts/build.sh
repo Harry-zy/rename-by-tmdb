@@ -39,9 +39,9 @@ build_binary() {
         
         # 打包文件
         if [ "$os" = "windows" ]; then
-            (cd "$OUTPUT_DIR" && zip "${binary_name}-v1.0.4-${os}-${arch}.zip" "${binary_name}-${os}-${arch}${ext}" "$PROJECT_ROOT/README.md" "$PROJECT_ROOT/.env.example")
+            (cd "$OUTPUT_DIR" && zip "${binary_name}-v1.0.5-${os}-${arch}.zip" "${binary_name}-${os}-${arch}${ext}" "$PROJECT_ROOT/README.md" "$PROJECT_ROOT/.env.example")
         else
-            tar -czf "$OUTPUT_DIR/${binary_name}-v1.0.4-${os}-${arch}.tar.gz" -C "$OUTPUT_DIR" "${binary_name}-${os}-${arch}" -C "$PROJECT_ROOT" "README.md" ".env.example"
+            tar -czf "$OUTPUT_DIR/${binary_name}-v1.0.5-${os}-${arch}.tar.gz" -C "$OUTPUT_DIR" "${binary_name}-${os}-${arch}" -C "$PROJECT_ROOT" "README.md" ".env.example"
         fi
     elif [ "$cmd" = "list" ]; then
         # 构建list命令
@@ -49,9 +49,9 @@ build_binary() {
         
         # 打包文件
         if [ "$os" = "windows" ]; then
-            (cd "$OUTPUT_DIR" && zip "${list_binary_name}-v1.0.4-${os}-${arch}.zip" "${list_binary_name}-${os}-${arch}${ext}")
+            (cd "$OUTPUT_DIR" && zip "${list_binary_name}-v1.0.5-${os}-${arch}.zip" "${list_binary_name}-${os}-${arch}${ext}")
         else
-            tar -czf "$OUTPUT_DIR/${list_binary_name}-v1.0.4-${os}-${arch}.tar.gz" -C "$OUTPUT_DIR" "${list_binary_name}-${os}-${arch}"
+            tar -czf "$OUTPUT_DIR/${list_binary_name}-v1.0.5-${os}-${arch}.tar.gz" -C "$OUTPUT_DIR" "${list_binary_name}-${os}-${arch}"
         fi
     fi
 
