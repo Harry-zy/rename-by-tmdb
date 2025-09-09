@@ -648,7 +648,7 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 				}
 
 				// 如果区间有效，生成替换规则
-				if startEp <= endEp && startEp >= startEp && endEp <= seasonDetails.Episodes[len(seasonDetails.Episodes)-1].EpisodeNumber {
+				if startEp <= endEp && endEp <= seasonDetails.Episodes[len(seasonDetails.Episodes)-1].EpisodeNumber {
 					// 构建被替换词：匹配区间内的集数
 					beReplaced := fmt.Sprintf("%s.*?(?:S%02d)?(?:E|Ep|EP|[Ee]pisode|[Ee]p)?(%s)(?!.*(?:[Pp]art|PART|Part))",
 						regexp.QuoteMeta(fileTitle), season.SeasonNumber,
@@ -686,13 +686,18 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 			continue // 跳过原有的集数范围处理逻辑
 		}
 
-		// 计算原文件中的集数范围（减去偏移量，因为原文件需要减去这个值）
+		// 计算原文件中的集数范围
+		// 偏移量的含义：原文件集数 + 偏移量 = TMDB集数
+		// 所以：原文件集数 = TMDB集数 - 偏移量
 		sourceStartEp := startEp - episodeOffset
 		sourceEndEp := endEp - episodeOffset
 
-		// 确保源文件的集数不会变成负数
-		if sourceStartEp <= 0 || sourceEndEp <= 0 {
-			fmt.Printf("警告：偏移量 %d 会导致源文件集数小于等于0，跳过此季\n", episodeOffset)
+		// 如果计算出的原文件集数范围包含负数，则调整范围
+		if sourceStartEp < 1 {
+			sourceStartEp = 1
+		}
+		if sourceEndEp < 1 {
+			// 如果整个范围都是负数，则跳过这一季
 			continue
 		}
 
@@ -721,7 +726,7 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 				fmt.Printf("集数范围：%d-%d（不连续，使用%d位数）\n", sourceStartEp, sourceEndEp, digits)
 			}
 		} else {
-			fmt.Printf("集数范围：%d-%d（不补0）\n", sourceStartEp, sourceEndEp, digits)
+			fmt.Printf("集数范围：%d-%d（不补0）\n", sourceStartEp, sourceEndEp)
 		}
 		if episodeOffset != 0 {
 			fmt.Printf("集数偏移量：%+d\n", episodeOffset)

@@ -45,7 +45,7 @@ func GetEpisodeOffset() (int, error) {
 		return 0, nil
 	}
 
-	// 尝试解析偏移量
+	// 尝试解析偏移量，支持 + 和 - 号
 	offset, err := strconv.Atoi(input)
 	if err != nil {
 		return 0, fmt.Errorf("无效的偏移量: %v", err)
