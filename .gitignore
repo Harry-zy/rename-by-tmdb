@@ -12,9 +12,10 @@ dist/rename-by-tmdb-*
 # IDE
 .idea/
 .vscode/
+.DS_Store
 
 # Environment
 .env 
 
 # 忽略scripts目录下的README.md
-scripts/README.md 
+scripts/README.md

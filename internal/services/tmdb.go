@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/harry/rename-by-tmdb/internal/models"
 )
@@ -23,7 +24,8 @@ const (
 
 // TMDBService 处理TMDB API相关的操作
 type TMDBService struct {
-	apiKey string
+	apiKey     string
+	httpClient *resilientHTTPClient
 }
 
 // NewTMDBService 创建新的TMDB服务实例
@@ -32,7 +34,16 @@ func NewTMDBService() (*TMDBService, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("TMDB_API_KEY 环境变量为空")
 	}
-	return &TMDBService{apiKey: apiKey}, nil
+
+	httpClient, err := newResilientHTTPClient(strings.EqualFold(os.Getenv("TMDB_DISABLE_PROXY"), "true"))
+	if err != nil {
+		return nil, fmt.Errorf("初始化TMDB HTTP客户端失败: %v", err)
+	}
+
+	return &TMDBService{
+		apiKey:     apiKey,
+		httpClient: httpClient,
+	}, nil
 }
 
 // checkTMDBResponse 检查TMDB API响应
@@ -73,10 +84,9 @@ func (s *TMDBService) FetchMovieInfo(movieID string) (*models.TMDBMovie, error) 
 	req.Header.Set("accept", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("发送TMDB请求失败: %v", err)
+		return nil, fmt.Errorf("发送TMDB请求失败: %v\n请检查 GoLand 的 HTTP Proxy 设置或环境变量 HTTPS_PROXY/HTTP_PROXY；如果希望 TMDB 始终直连，可在 .env 中设置 TMDB_DISABLE_PROXY=true", err)
 	}
 	defer resp.Body.Close()
 
@@ -105,10 +115,9 @@ func (s *TMDBService) FetchShowInfo(seriesID string) (*models.TMDBShow, error) {
 	req.Header.Set("accept", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("发送TMDB请求失败: %v", err)
+		return nil, fmt.Errorf("发送TMDB请求失败: %v\n请检查 GoLand 的 HTTP Proxy 设置或环境变量 HTTPS_PROXY/HTTP_PROXY；如果希望 TMDB 始终直连，可在 .env 中设置 TMDB_DISABLE_PROXY=true", err)
 	}
 	defer resp.Body.Close()
 
@@ -137,10 +146,9 @@ func (s *TMDBService) FetchSeasonDetails(seriesID string, seasonNumber int) (*mo
 	req.Header.Set("accept", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("发送TMDB请求失败: %v", err)
+		return nil, fmt.Errorf("发送TMDB请求失败: %v\n请检查 GoLand 的 HTTP Proxy 设置或环境变量 HTTPS_PROXY/HTTP_PROXY；如果希望 TMDB 始终直连，可在 .env 中设置 TMDB_DISABLE_PROXY=true", err)
 	}
 	defer resp.Body.Close()
 

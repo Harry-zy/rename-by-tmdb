@@ -69,11 +69,19 @@ cp .env.example .env
 # TMDB API密钥（必需）
 TMDB_API_KEY=your_tmdb_api_key
 
+# 可选：忽略系统/IDE代理，TMDB请求始终直连
+TMDB_DISABLE_PROXY=false
+
 # 远程服务器配置（可选，仅在需要上传规则时设置）
 API_BASE_URL=https://msgo.xxxxx.xxx:1234  # API服务器地址
 AUTH_TOKEN=your_auth_token                 # API认证令牌
 UPLOAD_MS=false                           # 是否上传规则到服务器
+
+# 可选：忽略系统/IDE代理，上传请求始终直连
+WORDGROUP_DISABLE_PROXY=false
 ```
+
+如果在 GoLand 调试时出现 `proxyconnect tcp`、`connection refused` 之类的错误，通常不是 TMDB 密钥本身有问题，而是 IDE 或系统环境中的 `HTTPS_PROXY` / `HTTP_PROXY` 代理配置不可用。程序会在检测到代理连接失败时自动回退为直连；如果你希望始终绕过代理，可以在 `.env` 中设置 `TMDB_DISABLE_PROXY=true`，上传接口同理可设置 `WORDGROUP_DISABLE_PROXY=true`。
 
 > ⚠️ **重要**：`.env` 文件必须与可执行文件在同一目录下。
 
@@ -509,4 +517,4 @@ Naruto.*(?:S\d{2})?E((221|222|223|...|252))
 
 ## 📄 许可证
 
-本项目采用MIT许可证。 
+本项目采用MIT许可证。

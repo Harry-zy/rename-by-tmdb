@@ -16,6 +16,7 @@ import (
 type WordGroupService struct {
 	apiBaseURL string
 	authToken  string
+	httpClient *resilientHTTPClient
 }
 
 // NewWordGroupService 创建新的词组服务实例
@@ -34,9 +35,15 @@ func NewWordGroupService() (*WordGroupService, error) {
 		return nil, fmt.Errorf("AUTH_TOKEN 未设置")
 	}
 
+	httpClient, err := newResilientHTTPClient(strings.EqualFold(os.Getenv("WORDGROUP_DISABLE_PROXY"), "true"))
+	if err != nil {
+		return nil, fmt.Errorf("初始化上传 HTTP客户端失败: %v", err)
+	}
+
 	return &WordGroupService{
 		apiBaseURL: apiBaseURL,
 		authToken:  authToken,
+		httpClient: httpClient,
 	}, nil
 }
 
@@ -61,8 +68,7 @@ func (s *WordGroupService) CreateWordGroup(title string) (*models.WordGroup, err
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", s.authToken)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("发送请求失败: %v", err)
 	}
@@ -139,8 +145,7 @@ func (s *WordGroupService) AddWordUnit(groupID int, beReplaced, replace, front, 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", s.authToken)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("发送请求失败: %v", err)
 	}
@@ -187,8 +192,7 @@ func (s *WordGroupService) GetWordGroupList() (*WordGroupList, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", s.authToken)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("发送请求失败: %v", err)
 	}
