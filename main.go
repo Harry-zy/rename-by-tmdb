@@ -489,40 +489,39 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 			}
 
 			// 为每个part生成替换规则
-			// 先按集数排序，确保按正确顺序处理
+			// 先筛选当前季内的part集数并排序，避免跨季集数影响当前季区间。
+			currentPartEpisodeInfo := make(map[int][]int)
 			var sortedEpisodes []int
-			for episodeNum := range partEpisodeInfo {
+			for episodeNum, parts := range partEpisodeInfo {
+				if episodeNum < startEp || episodeNum > endEp {
+					continue
+				}
+				currentPartEpisodeInfo[episodeNum] = parts
 				sortedEpisodes = append(sortedEpisodes, episodeNum)
 			}
 			sort.Ints(sortedEpisodes)
 
-			for _, episodeNum := range sortedEpisodes {
-				parts := partEpisodeInfo[episodeNum]
-				// 检查这一季是否包含这个集数
-				if episodeNum < startEp || episodeNum > endEp {
-					continue
-				}
-
-				for _, partNum := range parts {
-					// 重新设计的偏移量计算逻辑
-					offset := 0
-
-					// 计算前面所有part2的总数（不包括part1）
-					offset = 0
-					for checkEpisodeNum, checkParts := range partEpisodeInfo {
-						if checkEpisodeNum < episodeNum {
-							// 只计算part2的数量（每个集数的part数-1）
-							part2Count := len(checkParts) - 1
-							if part2Count > 0 {
-								offset += part2Count
-							}
+			calculatePartOffset := func(episodeNum, partNum int) int {
+				offset := 0
+				for checkEpisodeNum, checkParts := range currentPartEpisodeInfo {
+					if checkEpisodeNum < episodeNum {
+						part2Count := len(checkParts) - 1
+						if part2Count > 0 {
+							offset += part2Count
 						}
 					}
+				}
+				if partNum > 1 {
+					offset += partNum - 1
+				}
+				return offset
+			}
 
-					// 如果是part2，需要额外递增+1
-					if partNum > 1 {
-						offset += 1
-					}
+			for _, episodeNum := range sortedEpisodes {
+				parts := currentPartEpisodeInfo[episodeNum]
+
+				for _, partNum := range parts {
+					offset := calculatePartOffset(episodeNum, partNum)
 
 					// 调试信息
 					fmt.Printf("调试 - 第%d集part%d: 前面part总数=%d, 最终偏移量=%d\n",
@@ -530,13 +529,6 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 
 					// 计算实际集数（原集数 + 偏移量）
 					actualEpisodeNum := episodeNum + offset
-
-					// 构建被替换词：包含part信息，季数可有可无，part兼容大小写，集数补0
-					// 计算需要的位数（基于总集数）
-					digits := len(strconv.Itoa(seasonDetails.Episodes[len(seasonDetails.Episodes)-1].EpisodeNumber))
-					if digits < 2 {
-						digits = 2 // 确保至少使用2位数
-					}
 
 					beReplaced := fmt.Sprintf("%s.*?(?:S%02d)?(?:E|Ep|EP|[Ee]pisode|[Ee]p)?%0*d.*?(?:[Pp]art|PART|Part)%d.*",
 						regexp.QuoteMeta(fileTitle), season.SeasonNumber, digits, episodeNum, partNum)
@@ -570,116 +562,89 @@ func handleTVShow(tmdbService *services.TMDBService) error {
 				}
 			}
 
-			// 为非part集数生成区间替换规则
-			// 使用已经排序的episodes
+			type episodeInterval struct {
+				start  int
+				end    int
+				offset int
+			}
 
-			// 为每个区间生成替换规则
-			for i := 0; i <= len(sortedEpisodes); i++ {
-				var startEp, endEp int
-				var offset int
+			var intervals []episodeInterval
+			if len(sortedEpisodes) == 0 {
+				intervals = append(intervals, episodeInterval{start: startEp, end: endEp})
+			} else {
+				for i := 0; i <= len(sortedEpisodes); i++ {
+					var intervalStart, intervalEnd, offset int
 
-				if i == 0 {
-					// 第一个区间：从第1集到第一个part集数之前
-					startEp = 1
-					endEp = sortedEpisodes[0] - 1
-					offset = 0
-				} else if i == len(sortedEpisodes) {
-					// 最后一个区间：从最后一个part集数之后到季末
-					startEp = sortedEpisodes[len(sortedEpisodes)-1] + 1
+					if i == 0 {
+						// 第一个区间：从本季起始集到第一个part集数之前
+						intervalStart = startEp
+						intervalEnd = sortedEpisodes[0] - 1
+					} else if i == len(sortedEpisodes) {
+						// 最后一个区间：从最后一个part集数之后到季末
+						lastEpisodeNum := sortedEpisodes[len(sortedEpisodes)-1]
+						lastParts := currentPartEpisodeInfo[lastEpisodeNum]
+						maxOffset := calculatePartOffset(lastEpisodeNum, len(lastParts))
+						maxActualEpisode := lastEpisodeNum + maxOffset
 
-					// 计算最后一个part集数的最大偏移量
-					lastEpisodeNum := sortedEpisodes[len(sortedEpisodes)-1]
-					lastParts := partEpisodeInfo[lastEpisodeNum]
-					maxOffset := 0
-
-					// 计算前面所有part2的总数
-					for checkEpisodeNum, checkParts := range partEpisodeInfo {
-						if checkEpisodeNum < lastEpisodeNum {
-							// 只计算part2的数量（每个集数的part数-1）
-							part2Count := len(checkParts) - 1
-							if part2Count > 0 {
-								maxOffset += part2Count
-							}
+						// 如果偏移后超过了季末，则不生成这个区间
+						if maxActualEpisode >= endEp {
+							continue
 						}
+
+						intervalStart = lastEpisodeNum + 1
+						intervalEnd = endEp
+						offset = maxOffset
+					} else {
+						// 中间区间：两个part集数之间
+						previousPartEpisode := sortedEpisodes[i-1]
+						previousParts := currentPartEpisodeInfo[previousPartEpisode]
+
+						intervalStart = previousPartEpisode + 1
+						intervalEnd = sortedEpisodes[i] - 1
+						offset = calculatePartOffset(previousPartEpisode, len(previousParts))
 					}
 
-					// 最后一个part2的偏移量
-					if len(lastParts) > 1 {
-						maxOffset += 1
-					}
-
-					// 计算最后一个part集数偏移后的最大集数
-					maxActualEpisode := lastEpisodeNum + maxOffset
-
-					// 如果偏移后超过了季末，则不生成这个区间
-					if maxActualEpisode >= seasonDetails.Episodes[len(seasonDetails.Episodes)-1].EpisodeNumber {
-						continue
-					}
-
-					endEp = seasonDetails.Episodes[len(seasonDetails.Episodes)-1].EpisodeNumber
-					offset = maxOffset
-				} else {
-					// 中间区间：两个part集数之间
-					startEp = sortedEpisodes[i-1] + 1
-					endEp = sortedEpisodes[i] - 1
-					// 计算这个区间的偏移量（继承前面最近的part2的偏移量）
-					// 找到前面最近的part2的偏移量
-					offset = 0
-					for checkEpisodeNum := sortedEpisodes[i-1]; checkEpisodeNum >= 1; checkEpisodeNum-- {
-						if checkParts, exists := partEpisodeInfo[checkEpisodeNum]; exists {
-							// 如果前面有part2，则计算其part2的偏移量
-							if len(checkParts) > 1 {
-								// 计算前面所有part2的总数
-								for checkCheckEpisodeNum, checkCheckParts := range partEpisodeInfo {
-									if checkCheckEpisodeNum < checkEpisodeNum {
-										// 只计算part2的数量（每个集数的part数-1）
-										part2Count := len(checkCheckParts) - 1
-										if part2Count > 0 {
-											offset += part2Count
-										}
-									}
-								}
-								// part2的偏移量
-								offset += 1
-								break
-							}
-						}
+					if intervalStart <= intervalEnd && intervalEnd <= endEp {
+						intervals = append(intervals, episodeInterval{
+							start:  intervalStart,
+							end:    intervalEnd,
+							offset: offset,
+						})
 					}
 				}
+			}
 
-				// 如果区间有效，生成替换规则
-				if startEp <= endEp && endEp <= seasonDetails.Episodes[len(seasonDetails.Episodes)-1].EpisodeNumber {
-					// 构建被替换词：匹配区间内的集数
-					beReplaced := fmt.Sprintf("%s.*?(?:S%02d)?(?:E|Ep|EP|[Ee]pisode|[Ee]p)?(%s)(?!.*(?:[Pp]art|PART|Part))",
-						regexp.QuoteMeta(fileTitle), season.SeasonNumber,
-						utils.GenerateRangePattern(startEp, endEp, digits))
+			for _, interval := range intervals {
+				// 构建被替换词：匹配区间内的集数
+				beReplaced := fmt.Sprintf("%s.*?(?:S%02d)?(?:E|Ep|EP|[Ee]pisode|[Ee]p)?(%s)(?!.*(?:[Pp]art|PART|Part))",
+					regexp.QuoteMeta(fileTitle), season.SeasonNumber,
+					utils.GenerateRangePattern(interval.start, interval.end, digits))
 
-					// 构建替换词：使用捕获组和偏移量
-					replace := fmt.Sprintf("%s.S%02dE\\1.%s.{[tmdbid=%s;type=%s]}",
-						showName, season.SeasonNumber, year, seriesID, showType)
+				// 构建替换词：使用捕获组和偏移量
+				replace := fmt.Sprintf("%s.S%02dE\\1.%s.{[tmdbid=%s;type=%s]}",
+					showName, season.SeasonNumber, year, seriesID, showType)
 
-					fmt.Printf("\n区间 %d-%d 非part集数规则 (偏移量:+%d):\n", startEp, endEp, offset)
-					fmt.Printf("被替换词：\n%s\n", beReplaced)
-					fmt.Printf("替换词：\n%s\n", replace)
-					fmt.Printf("说明：区间内集数的实际集数 = 原集数 + %d\n", offset)
+				fmt.Printf("\n区间 %d-%d 非part集数规则 (偏移量:+%d):\n", interval.start, interval.end, interval.offset)
+				fmt.Printf("被替换词：\n%s\n", beReplaced)
+				fmt.Printf("替换词：\n%s\n", replace)
+				fmt.Printf("说明：区间内集数的实际集数 = 原集数 + %d\n", interval.offset)
 
-					// 构建前定位词和后定位词（如果有偏移量）
-					var prefix, suffix string
-					if offset > 0 {
-						prefix = fmt.Sprintf("%s.S%02dE", showName, season.SeasonNumber)
-						suffix = backPositionWord
+				// 构建前定位词和后定位词（如果有偏移量）
+				var prefix, suffix string
+				if interval.offset > 0 {
+					prefix = fmt.Sprintf("%s.S%02dE", showName, season.SeasonNumber)
+					suffix = backPositionWord
+				}
+
+				// 上传替换规则
+				if utils.IsUploadEnabled() {
+					err = wordGroupService.AddWordUnit(wordGroup.ID, beReplaced, replace, prefix, suffix, interval.offset)
+					if err != nil {
+						return fmt.Errorf("上传第 %d 季区间 %d-%d 非part集数替换规则失败: %v",
+							season.SeasonNumber, interval.start, interval.end, err)
 					}
-
-					// 上传替换规则
-					if utils.IsUploadEnabled() {
-						err = wordGroupService.AddWordUnit(wordGroup.ID, beReplaced, replace, prefix, suffix, offset)
-						if err != nil {
-							return fmt.Errorf("上传第 %d 季区间 %d-%d 非part集数替换规则失败: %v",
-								season.SeasonNumber, startEp, endEp, err)
-						}
-						fmt.Printf("第 %d 季区间 %d-%d 非part集数替换规则上传成功\n",
-							season.SeasonNumber, startEp, endEp)
-					}
+					fmt.Printf("第 %d 季区间 %d-%d 非part集数替换规则上传成功\n",
+						season.SeasonNumber, interval.start, interval.end)
 				}
 			}
 
